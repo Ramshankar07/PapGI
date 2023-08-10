@@ -1,0 +1,6 @@
+numpy
+scipy
+nltk
+beautifulsoup4
+PyPDF2
+requests
