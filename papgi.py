@@ -25,40 +25,64 @@ def extract_summary(paper):
     return summary
 
 def main():
-    url = "https://arxiv.org/list/cs/recent"
-    response = requests.get(url)
+    def get_recent_ml_papers(num_papers=10):
+            base_url = "http://export.arxiv.org/api/query?"
+            search_query = "cat:cs.LG"  # Category for Machine Learning on arXiv
     
-    # Create a BeautifulSoup object by parsing the HTML content
-    soup = BeautifulSoup(response.content, 'html.parser')
+            params = {
+                "search_query": search_query,
+                "sortBy": "submittedDate",
+                "sortOrder": "descending",
+                "max_results": num_papers
+            }
     
-    # Find the element containing the information for the recent paper
-    paper_element = soup.find('div', {'class': 'recent-paper'})
+            response = requests.get(base_url, params=params)
+            
+            if response.status_code == 200:
+                soup = BeautifulSoup(response.text, "html.parser")
+                entries = soup.find_all("entry")
+                
+                papers = []
+                for entry in entries:
+                    title = entry.title.text.strip()
+                    authors = [author.find("name").text.strip() for author in entry.find_all("author")]
+                    published = entry.published.text.strip()
+                    summary = entry.summary.text.strip()
+                    
+                    paper_info = {
+                        "title": title,
+                        "authors": authors,
+                        "published": published,
+                        "summary": summary
+                    }
+                    papers.append(paper_info)
+                
+                return papers
+            else:
+                print("Error:", response.status_code)
+                return None
+
+    # Get 5 recent ML papers
+    recent_ml_papers = get_recent_ml_papers(num_papers=5)
+
+    if recent_ml_papers:
+    # Save the data in JSON format
+        with open("recent_ml_papers.json", "w") as json_file:
+            json.dump(recent_ml_papers, json_file, indent=4)
+
+        print("Recent ML papers saved to 'recent_ml_papers.json'")
+    else:
+        print("Failed to retrieve recent ML papers.")
+        pdf_file_path = "file"
     
-    # Extract the title and authors from the paper element
-    title = paper_element.find('h1').text.strip()
-    authors = paper_element.find('div', {'class': 'authors'}).text.strip()
-    
-    # Extract the abstract from the paper element
-    abstract = paper_element.find('div', {'class': 'abstract'}).text.strip()
-    
-    # Return the scraped information as a dictionary
-    paper_info = {
-        'title': title,
-        'authors': authors,
-        'abstract': abstract
-    }
-    
-     content = ""
-     pdf_file_path = "file"
-    
-    with open(file_path, 'rb') as file:
-        pdf_reader = PyPDF2.PdfReader(file)
+        with open(file_path, 'rb') as file:
+            pdf_reader = PyPDF2.PdfReader(file)
         
-        for page_num in range(pdf_reader.numPages):
-            page = pdf_reader.getPage(page_num)
-            content += page.extract_text()
+            for page_num in range(pdf_reader.numPages):
+                page = pdf_reader.getPage(page_num)
+                content += page.extract_text()
     
     
 
-if __name__ == '__main__':
-    main()
+    if __name__ == '__main__':
+        main()
